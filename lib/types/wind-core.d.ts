@@ -28,6 +28,18 @@ export declare function bandOf(mode: TaskMode | undefined): BandName;
 export declare function classifyTask(text: string): TaskMode;
 /** Extract the display text from a user message (content array or plain string). */
 export declare function extractText(message: unknown): string;
+/** Persona for a raw mode value (upstream-compatible name). */
+export declare function personaFor(mode: TaskMode | undefined, modelId?: string): string;
+/** Human-readable band name for a mode value (upstream `bandFor`). */
+export declare function bandFor(mode: TaskMode | undefined): BandName;
+/** First-turn core tool surface by band (upstream v34 measurement). */
+export declare function coreFor(mode: TaskMode | undefined): string[];
+/** Informational test-suppression strength by band (upstream v34). */
+export declare function testinessFor(mode: TaskMode | undefined): 'suppressed' | 'normal' | 'light';
+/** Parse a user/agent-supplied mode token: number 0-100, decimal 0-1, band name, or 'auto'. */
+export declare function parseMode(token: unknown): TaskMode | 'auto' | null;
+/** Per-session mode from durable events, skipping plugin-origin user messages (upstream #13). */
+export declare function sessionMode(session: unknown): TaskMode;
 /** Band persona (weak is model-specific: flash family gets the neutral classify-and-act persona). */
 export declare function personaForBand(band: BandName | undefined, modelId: string | undefined): string;
 /** Staged tool ladder (wind progressive disclosure). */
@@ -45,7 +57,13 @@ export declare function windowFor(stage: number): number;
 /** Advance at most one stage per call from tool evidence plus tightened wording
  * (upstream v34: /方案|计划/ was removed because it fired too early). */
 export declare function advanceStage(stage: number, toolNames: Iterable<string>, text: string): number;
-/** The near-field guide text (same-request, appended once on the first pre-step). */
+/** Upstream router-standard STAGE_GUIDES (v34), adapted only where this port
+ * lacks a subsystem: memory (engram), tools_catalog, phase_advance and
+ * delivery_check mentions are replaced by this port's wind_status /
+ * auto-advance and plain delivery discipline. Everything else is verbatim. */
+export declare const STAGE_GUIDES: readonly string[];
+/** The near-field guide text (same-request, appended once on the first pre-step).
+ * Upstream START_GUIDE, adapted for wind_status and the absent bootstrap tools. */
 export declare function buildGuide(band: BandName | undefined, modelId: string | undefined): string;
 /** Persistent declaration appended to every wind assembly. */
 export declare function buildDeclaration(): string;

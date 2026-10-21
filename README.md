@@ -45,7 +45,8 @@
 ```bash
 cd /media/ict/19BD52556106DE5A/dsh-wind-integration
 DSH_CHECKOUT=/media/ict/19BD52556106DE5A/deepseek-harness bash scripts/build.sh   # src → lib (+lib/types)
-node --test tests/*.test.mjs  # 纯函数核心离线用例（含验收三案；目录形式在 Node 22 不被 --test 接受）
+node --test tests/*.test.mjs  # 纯函数核心离线用例（含验收三案 + 上游 parity 套件；目录形式在 Node 22 不被 --test 接受）
+# tests/fixtures/upstream-router-core-v34.mjs 为 MIT 上游原样快照，仅用于 parity 断言
 npm pack                      # 产物 tgz
 ```
 
@@ -53,7 +54,7 @@ npm pack                      # 产物 tgz
 
 ```bash
 # 官方标准安装：写入 profile 依赖并选中 bundle（官方 Plugins 页同样可安装/启停/配置）
-dsh plugin --profile web add 'github:nobodyhere34/dsh-wind-integration#v0.1.4'
+dsh plugin --profile web add 'github:nobodyhere34/dsh-wind-integration#v0.1.5'
 
 # 本地开发：link 依赖，源码 rebuild 后生效
 dsh plugin --profile web add /media/ict/19BD52556106DE5A/dsh-wind-integration

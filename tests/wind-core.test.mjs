@@ -26,7 +26,8 @@ test('bandOf quantizes modes', () => {
   assert.equal(bandOf(0.3), 'mixed')
   assert.equal(bandOf(1), 'react')
   assert.equal(bandOf('weak'), 'weak')
-  assert.equal(bandOf(undefined), 'weak')
+  // Upstream parity: an absent mode clamps to 0 (spec region).
+  assert.equal(bandOf(undefined), 'spec')
 })
 
 test('isFlashModel / extractText', () => {
@@ -64,18 +65,20 @@ test('advanceStage transitions on tool/text evidence and never regresses', () =>
   assert.equal(advanceStage(1, [], '随口聊天'), 1)
 })
 
-test('guide text is band-aware and one-shot by design', () => {
+test('guide text follows the upstream START_GUIDE and is band-aware', () => {
   const g = buildGuide('react', 'DeepSeek-V4-Flash-0731')
-  assert.ok(g.includes('[wind routing]') && g.includes('wind_status'))
-  assert.ok(g.includes('react'))
+  assert.ok(g.includes('Bootstrap (once per session)') && g.includes('progressive tool-unlock'))
+  assert.ok(g.includes('wind_status'))
+  assert.ok(g.includes('Task classified as react'))
 })
 
 test('section builders produce the expected wind sections', () => {
   const extra = windExtraSections(0, 'weak', 'DeepSeek-V4-Flash-0731', false)
   assert.deepEqual(extra.map((s) => s.name), ['wind-stage', 'wind-decl'])
-  assert.ok(buildStageText(0, 'DeepSeek-V4-Flash-0731', 'weak', false).includes('Stage 1/4'))
-  assert.ok(buildStageText(3, 'x', 'react', true).includes('[full catalog open]'))
-  assert.ok(buildDeclaration().includes('progressive disclosure'))
+  assert.ok(buildStageText(0, 'DeepSeek-V4-Flash-0731', 'weak', false).includes('Current phase:'))
+  assert.ok(buildStageText(0, 'x', 'weak', false).includes('Stage guide: Phase: understanding.'))
+  assert.ok(buildStageText(3, 'x', 'react', true).includes('full catalog open'))
+  assert.ok(buildDeclaration().includes('revealed in phases'))
 })
 
 test('applyPersona replaces the official persona section and adds wind-persona when absent', () => {
@@ -84,6 +87,6 @@ test('applyPersona replaces the official persona section and adds wind-persona w
   assert.equal(withOfficial.length, 1)
   const minimal = applyPersona([{ name: 'placeholder', text: 'x' }], 'wind persona')
   assert.equal(minimal.length, 2)
-  assert.equal(minimal[1].name, 'wind-persona')
+  assert.equal(minimal[1].name, 'router-persona')
   assert.equal(minimal[1].text, 'wind persona')
 })

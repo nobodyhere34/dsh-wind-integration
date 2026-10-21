@@ -42,7 +42,7 @@ test('CASE 1 — 0731 + standard → wind active (sections + once-only guide)', 
   assert.equal(decision.restrict, true)
   const names = assembled.sections.map((s) => s.name)
   assert.ok(names.includes('wind-stage') && names.includes('wind-decl'))
-  const persona = assembled.sections.find((s) => s.name === 'wind-persona')
+  const persona = assembled.sections.find((s) => s.name === 'router-persona')
   assert.ok(persona.text.startsWith('You are a') && persona.text !== 'official persona')
   assert.equal(assembled.sections.some((s) => s.name === 'system-persona'), false, 'official persona section is replaced')
   assert.equal(runtime.get('s1').injectedAssemblies, 1)
@@ -56,7 +56,7 @@ test('CASE 1 — 0731 + standard → wind active (sections + once-only guide)', 
   const guide = out1.messages.at(-1)
   assert.equal(guide.role, 'user')
   assert.equal(guide.source.kind, 'plugin:dsh-wind-integration')
-  assert.ok(guide.content[0].text.includes('[wind routing]'))
+  assert.ok(guide.content[0].text.includes('Bootstrap (once per session)'))
   // V4 reload validates every message event's id (assertMessageEventShape);
   // an idless injected message corrupts the session log on the next load.
   assert.match(guide.id, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
@@ -102,7 +102,7 @@ test('CASE 3 — 0731 + ptc → persona + guide but NO restrict', () => {
   assert.equal(decision.restrict, false, 'PTC must never restrict')
   const names = assembled.sections.map((s) => s.name)
   assert.ok(names.includes('wind-stage') && names.includes('wind-decl'))
-  assert.equal(assembled.sections.find((s) => s.name === 'wind-stage').text.includes('[full catalog open]'), true,
+  assert.equal(assembled.sections.find((s) => s.name === 'wind-stage').text.includes('full catalog open'), true,
     'staged-disclosure text reports full catalog when tools are preserved')
 
   const out = maybeGuided(enterDecision, {
