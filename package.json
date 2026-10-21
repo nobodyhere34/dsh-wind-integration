@@ -1,6 +1,6 @@
 {
   "name": "@dsh-external/dsh-wind-integration",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "风插（dsh-routing-suite 路由器行为）运行时模型门控集成：选中 DeepSeek-V4-Flash-0731 或 deepseek-v4-pro-0813（0813pro）模型时，任意预设自动叠加风插行为（band persona / 近场引导 / 阶段段 / 渐进式工具披露），PTC 等非 native 呈现只加行为、绝不 restrict。零重启运行时注入（dsh-super-injector 通道），host-only（不依赖预设内挂载）。",
   "license": "MIT",
   "private": false,

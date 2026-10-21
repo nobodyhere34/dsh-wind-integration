@@ -57,6 +57,11 @@ export declare function windowFor(stage: number): number;
 /** Advance at most one stage per call from tool evidence plus tightened wording
  * (upstream v34: /方案|计划/ was removed because it fired too early). */
 export declare function advanceStage(stage: number, toolNames: Iterable<string>, text: string): number;
+/** Completion-signal advancement used by the plugin (upstream v1.19 autoAdvance):
+ * only "this stage's work is done" signals advance — tool names or text intent
+ * never skip a stage. 0→1 ask_user_question/todo_write/exit_plan_mode;
+ * 1→2 todo_write/exit_plan_mode; 2→3 delivery_check. */
+export declare function autoAdvance(stage: number, toolNames: Iterable<string>): number;
 /** Upstream router-standard STAGE_GUIDES (v34), adapted only where this port
  * lacks a subsystem: memory (engram), tools_catalog, phase_advance and
  * delivery_check mentions are replaced by this port's wind_status /

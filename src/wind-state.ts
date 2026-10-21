@@ -34,6 +34,8 @@ export interface SessionWindState {
   restrictDisposer?: () => void
   /** wind_status was registered on the agent scope. */
   toolRegistered: boolean
+  /** Phase/catalog/delivery meta tools were registered on the agent scope. */
+  metaToolsRegistered?: boolean
   /** Model id captured at the first wind assembly (legacy display fallback). */
   firstAssembledModel?: string
   /** Steps observed; the guide rides the first step only. */

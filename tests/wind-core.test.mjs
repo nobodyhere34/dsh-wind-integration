@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import {
   classifyTask, bandOf, isFlashModel, extractText, advanceStage,
   personaForBand, buildGuide, buildDeclaration, buildStageText,
-  applyPersona, windExtraSections, STAGES,
+  applyPersona, windExtraSections, STAGES, autoAdvance, WIND_META_TOOLS,
 } from '../lib/wind-core.js'
 
 test('classifyTask: hit-counted spec/react bands, ambiguous → weak (upstream v34)', () => {
@@ -53,6 +53,16 @@ test('stage ladder: 4 stages with per-stage tools and goals', () => {
   assert.ok(names[0].includes('了解'))
   assert.ok(names[1].includes('规划') || names[1].includes('拟合'))
   assert.ok(names[3].includes('验证'))
+})
+
+test('autoAdvance follows upstream v1.19 completion signals only', () => {
+  assert.equal(autoAdvance(0, ['ask_user_question']), 1)
+  assert.equal(autoAdvance(0, ['todo_write']), 1)
+  assert.equal(autoAdvance(1, ['exit_plan_mode']), 2)
+  assert.equal(autoAdvance(2, ['delivery_check']), 3)
+  assert.equal(autoAdvance(2, ['bash']), 2, 'tool usage alone never advances')
+  assert.equal(autoAdvance(3, ['delivery_check']), 3)
+  assert.ok(WIND_META_TOOLS.includes('phase_begin') && WIND_META_TOOLS.includes('delivery_check'))
 })
 
 test('advanceStage transitions on tool/text evidence and never regresses', () => {

@@ -175,7 +175,7 @@ export const STAGES: ReadonlyArray<{ name: string; tools: readonly string[]; goa
 ]
 
 /** Tools that stay available at every stage. */
-export const WIND_META_TOOLS: readonly string[] = ['wind_status']
+export const WIND_META_TOOLS: readonly string[] = ['wind_status', 'phase_begin', 'phase_advance', 'tools_catalog', 'tools_help', 'delivery_check']
 /** Union of all stage tools — the full write surface when disclosure is released. */
 export const WIND_GLOBAL_SAFE: readonly string[] = [...STAGES.flatMap((s) => s.tools), ...WIND_META_TOOLS]
 
@@ -194,6 +194,19 @@ export function advanceStage(stage: number, toolNames: Iterable<string>, text: s
   if (next === 1 && (names.has('write') || names.has('edit') || names.has('str_replace_editor'))) next = 2
   if (next === 2 && (names.has('pwsh') || names.has('bash') || /完成|finished|done|验证/i.test(words))) next = 3
   return Math.min(next, STAGES.length - 1)
+}
+
+/** Completion-signal advancement used by the plugin (upstream v1.19 autoAdvance):
+ * only "this stage's work is done" signals advance — tool names or text intent
+ * never skip a stage. 0→1 ask_user_question/todo_write/exit_plan_mode;
+ * 1→2 todo_write/exit_plan_mode; 2→3 delivery_check. */
+export function autoAdvance(stage: number, toolNames: Iterable<string>): number {
+  if (stage >= STAGES.length - 1) return stage
+  const names = new Set(toolNames)
+  if (stage === 0 && (names.has('ask_user_question') || names.has('todo_write') || names.has('exit_plan_mode'))) return 1
+  if (stage === 1 && (names.has('todo_write') || names.has('exit_plan_mode'))) return 2
+  if (stage === 2 && names.has('delivery_check')) return 3
+  return stage
 }
 
 function hasTool(toolNames: Iterable<string>, ...names: string[]): boolean {

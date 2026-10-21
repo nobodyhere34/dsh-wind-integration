@@ -14,15 +14,18 @@
  */
 import type { Context } from 'cordis'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import z from 'schemastery'
-import { STAGES, WIND_GLOBAL_SAFE, WIND_META_TOOLS, windowFor, bandLabel, extractText, advanceStage } from './wind-core.js'
+import { STAGES, WIND_GLOBAL_SAFE, WIND_META_TOOLS, windowFor, bandLabel, extractText, autoAdvance } from './wind-core.js'
 import { decideWind, matchesTargetModel } from './wind-gate.js'
 import { WindRuntime } from './wind-state.js'
 import type { SessionWindState } from './wind-state.js'
 import { transformAssembly, maybeGuided, recordUserMessage } from './wind-apply.js'
+import { registerDeliveryCheck } from './delivery-check.js'
+import { registerPhaseTools } from './phase-tools.js'
+import { catalogFromStages } from './phase-state.js'
 import type { WindConfig, WindResolvedConfig, WindAgentFace, PreStepDecision, PromptAssembly } from './types.js'
 
 export const name = 'dsh-wind-integration'
@@ -286,6 +289,43 @@ export function apply(ctx: Context, config: WindConfig): void {
     } catch (e) { log('wind_status register: ' + String(e)) }
   }
 
+  // ── per-agent phase/catalog/delivery tools (upstream meta surface; agent scope) ──
+  const phaseCatalog = catalogFromStages(STAGES, WIND_META_TOOLS)
+  const phaseStore = {
+    load: (sid: string) => {
+      const st = runtime.get(sid)
+      return st === undefined ? undefined : { stage: st.stage, guided: st.guided }
+    },
+    save: (sid: string, record: { stage: number; guided: boolean }) => {
+      const st = runtime.ensure(sid)
+      st.stage = record.stage
+      st.guided = record.guided
+      const agent = (ctx.get('agents') as { get?: (id: string) => unknown } | undefined)?.get?.(sid) as WindAgentFace | undefined
+      if (agent && st.restrictApplied) {
+        if (st.stage >= STAGES.length - 1) releaseRestrict(st)
+        else applyStageRestrict(agent, st)
+      }
+    },
+  }
+  const deliveryDeps = {
+    cwd: process.cwd(),
+    exists: (p: string) => { try { const s = statSync(p); return { exists: true, isFile: s.isFile(), size: s.size, mtime: s.mtime.toISOString() } } catch { return { exists: false, isFile: false, size: 0 } } },
+    readFile: (p: string) => readFileSync(p),
+  }
+  function registerMetaTools(agent: WindAgentFace, st: SessionWindState): void {
+    if (st.metaToolsRegistered) return
+    const agentCtx = agent.ctx as { tools?: { register?: unknown } } | undefined
+    if (typeof agentCtx?.tools?.register !== 'function') return
+    try {
+      registerPhaseTools(agent.ctx as unknown as Parameters<typeof registerPhaseTools>[0], {
+        stateStore: phaseStore, catalog: phaseCatalog, stageNames: STAGES.map((s) => s.name),
+      })
+      registerDeliveryCheck(agent.ctx as unknown as Parameters<typeof registerDeliveryCheck>[0], deliveryDeps)
+      st.metaToolsRegistered = true
+      log('meta tools registered for ' + sidOf(agent))
+    } catch (e) { log('meta tools register: ' + String(e)) }
+  }
+
   // ── hooks ──
   ctx.on('system-prompt/assemble', async (_assembly: unknown, context: { agent?: WindAgentFace }, next: () => Promise<unknown>) => {
     const assembled = await next() as PromptAssembly
@@ -305,6 +345,7 @@ export function apply(ctx: Context, config: WindConfig): void {
       const st = runtime.ensure(sid)
       if (decision.restrict && !st.restrictApplied) applyStageRestrict(agent, st)
       registerWindStatus(agent, st)
+      registerMetaTools(agent, st)
     }
     return out
   })
@@ -320,6 +361,7 @@ export function apply(ctx: Context, config: WindConfig): void {
     recordUserMessage(runtime, sid, text)
     const st = runtime.get(sid)
     if (st && runtime.enabled(sid)) registerWindStatus(agent, st)
+    if (st && runtime.enabled(sid)) registerMetaTools(agent, st)
   })
 
   ctx.on('agent/pre-step', async (payload: { agent?: WindAgentFace; messages?: unknown[]; step?: number }, next: () => Promise<unknown>) => {
@@ -338,9 +380,10 @@ export function apply(ctx: Context, config: WindConfig): void {
       st.mode = classifyTask(st.firstText)
     }
     if (runtime.enabled(sid)) registerWindStatus(agent, st)
-    const userText = (payload.messages ?? []).map((m) => extractText(m)).join(' ')
+    if (runtime.enabled(sid)) registerMetaTools(agent, st)
     const toolNames = new Set([...sessionEventToolNames(agent), ...toolNamesFromMessages(payload.messages ?? [])])
-    const advanced = advanceStage(st.stage, toolNames, userText)
+    // Completion-signal advancement (upstream v1.19 autoAdvance), not tool/text heuristics.
+    const advanced = autoAdvance(st.stage, toolNames)
     if (advanced !== st.stage) {
       st.stage = advanced
       if (st.restrictApplied) {
@@ -385,7 +428,7 @@ export function apply(ctx: Context, config: WindConfig): void {
     const st = view?.state ?? null
     const body = JSON.stringify({
       plugin: 'dsh-wind-integration',
-      version: '0.1.5',
+      version: '0.2.0',
       active: view?.active ?? false,
       targetModels: config.targetModels.get(),
       latest: st === null ? null : {
@@ -462,4 +505,5 @@ export function apply(ctx: Context, config: WindConfig): void {
       return () => {}
     }
   }, 'dsh-wind: status + config route')
+
 }

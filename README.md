@@ -54,7 +54,7 @@ npm pack                      # 产物 tgz
 
 ```bash
 # 官方标准安装：写入 profile 依赖并选中 bundle（官方 Plugins 页同样可安装/启停/配置）
-dsh plugin --profile web add 'github:nobodyhere34/dsh-wind-integration#v0.1.5'
+dsh plugin --profile web add 'github:nobodyhere34/dsh-wind-integration#v0.2.0'
 
 # 本地开发：link 依赖，源码 rebuild 后生效
 dsh plugin --profile web add /media/ict/19BD52556106DE5A/dsh-wind-integration
@@ -94,3 +94,11 @@ cordis.patch.yml  官方 bundle 装配层（package.json dsh.bundle.patch 声明
 - 会话状态为内存态（按 session.id）。代理终止只标记 `lastSkip=ended`、不再删除：根作用域侧栏卡片按"最近观察的会话"上报，短命成员会话结束时卡片不应瞬间清空；store 有界（MAX_SESSIONS，超出淘汰最旧观察）。
 - 卡片上报三态：`engaged`（门控曾通过）+ `lastSkip`（当前不参与原因：model/preset/session/ended，实时装配时清空）+ `model`（最近观察路由，含 request/header 权威源，中途中换模型后如实显示被拒路由）。`/wind/status` 现带轮询（4s），不再一次性 fetch 冻结。
 - 阶段推进的证据源做了双通道兜底（会话事件 + 文本信号）；若运行时事件命名变化，wind_status 可随时核对 stage 与实际 callable tools。
+
+## 六、v0.2.0：上游子系统补齐（phase / catalog / delivery）
+
+- phase_begin / phase_advance：会话开启确认与逐级推进（agent 作用域 meta 工具，返回新档工具与 Next goal）。
+- tools_catalog / tools_help：当前档默认目录；query 单点白盒（锁住工具只在显式查询时标注解锁阶段）；help 给出完整 schema。
+- delivery_check：file-exists/nonempty/utf8 + 页面 smoke + evidence manifest；PASS 才可宣告完成，FAIL 不可绕过。
+- autoAdvance：完成信号推进（ask_user_question/todo_write/exit_plan_mode → delivery_check），工具名/文本意图不再跳级。
+- 测试：66/66（上游 parity 10 + phase 9 + delivery 22 + 门控/核心/验收 25）；完整叙事见 docs/WIND-STORY.md。
