@@ -1,6 +1,6 @@
 # dsh-wind-integration
 
-风插（dsh-routing-suite 路由器行为）的 **运行时模型门控集成**：当会话模型命中 wind 门控（默认精确 id `DeepSeek-V4-Flash-0731`，含 /v4/i 且含 0731 的模糊回退）时，**任意预设**（standard / ptc / 其它）自动叠加风插行为；以官方 profile bundle 持久安装，也保留 super-injector 运行时注入做热开发。
+风插（dsh-routing-suite 路由器行为）的 **运行时模型门控集成**：当会话模型命中 wind 门控（默认严格白名单：`DeepSeek-V4-Flash-0731` 与 `deepseek-v4-pro-0813`；其余模型零接触）时，**任意预设**（standard / ptc / 其它）自动叠加风插行为；以官方 profile bundle 持久安装，也保留 super-injector 运行时注入做热开发。
 
 - **宿主侧原生 Cordis 插件**（无 dsh-hook-protocol）：只通过 `ctx.on` / `ctx.effect` 注册，插件不依赖任何预设挂载点。
 - **官方安装形态**：`cordis.patch.yml` 为官方 bundle 装配层（`package.json` 的 `dsh.bundle.patch`，单行 insert，仓库 github.com/nobodyhere34/dsh-wind-integration）；super-injector 注入仅保留为免重启热开发通道（同 id，互不叠加）。
@@ -21,8 +21,8 @@
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
-| `targetModels` | `['DeepSeek-V4-Flash-0731']` | 精确命中即生效 |
-| `matchV4Fallback` | `true` | 模糊回退：/v4/i 且包含 '0731'（flash 且含 0731 为其子集，保持字面实现） |
+| `targetModels` | `['DeepSeek-V4-Flash-0731','deepseek-v4-pro-0813']` | 严格白名单：只对这两个路由 id 生效 |
+| `matchV4Fallback` | `false` | 模糊回退默认关闭；开启后 /v4/i 且包含 '0731' 才命中（仅作兼容逃生口） |
 | `skipPresets` | `['router-standard','router-spec','router-pro']` | 选中预设即风插原生 → 跳过叠加 |
 | `preservePresentationModes` | `['ptc','both']` | 这些呈现模式下只加行为、不 restrict |
 | `stageRestrict` | `true` | 是否对 native 呈现会话应用四档披露 |
@@ -53,7 +53,7 @@ npm pack                      # 产物 tgz
 
 ```bash
 # 官方标准安装：写入 profile 依赖并选中 bundle（官方 Plugins 页同样可安装/启停/配置）
-dsh plugin --profile web add 'github:nobodyhere34/dsh-wind-integration#v0.1.1'
+dsh plugin --profile web add 'github:nobodyhere34/dsh-wind-integration#v0.1.2'
 
 # 本地开发：link 依赖，源码 rebuild 后生效
 dsh plugin --profile web add /media/ict/19BD52556106DE5A/dsh-wind-integration

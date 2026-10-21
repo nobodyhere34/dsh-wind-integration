@@ -34,6 +34,15 @@ test('fuzzy fallback disabled keeps exact matching only', () => {
   assert.equal(matchesTargetModel('DeepSeek-V4-Flash-0731', exactOnly), true)
 })
 
+test('strict allowlist: exactly 0731 and 0813pro, no other route', () => {
+  const strict = { ...config, targetModels: ['DeepSeek-V4-Flash-0731', 'deepseek-v4-pro-0813'], matchV4Fallback: false }
+  assert.equal(matchesTargetModel('DeepSeek-V4-Flash-0731', strict), true)
+  assert.equal(matchesTargetModel('deepseek-v4-pro-0813', strict), true)
+  for (const id of ['deepseek-flash', 'deepseek-v4.1-flash-1017', 'DeepSeek-V4.1-Flash', 'glm-5.3-flash', 'Qwen3.8-Flash-Next-NVFP4']) {
+    assert.equal(matchesTargetModel(id, strict), false, id)
+  }
+})
+
 test('skip presets are exact, case-insensitive, and never swipe unknown presets', () => {
   assert.equal(isSkippedPreset('router-standard', config), true)
   assert.equal(isSkippedPreset('Router-Standard', config), true)
