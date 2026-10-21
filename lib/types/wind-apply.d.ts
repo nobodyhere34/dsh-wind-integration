@@ -1,6 +1,6 @@
 import { decideWind } from './wind-gate.js';
 import { WindRuntime } from './wind-state.js';
-import type { WindConfig, PromptAssembly, PreStepDecision, InjectedMessage } from './types.js';
+import type { WindResolvedConfig, PromptAssembly, PreStepDecision, InjectedMessage } from './types.js';
 export interface AssemblyMeta {
     sid: string;
     modelId?: string;
@@ -23,11 +23,11 @@ export declare function recordUserMessage(runtime: WindRuntime, sid: string, tex
  * Add wind sections to an assembly when the model gate engages.
  * Inactive input is returned untouched (same reference).
  */
-export declare function transformAssembly(assembled: PromptAssembly, meta: AssemblyMeta, config: WindConfig, runtime: WindRuntime): TransformResult;
+export declare function transformAssembly(assembled: PromptAssembly, meta: AssemblyMeta, config: WindResolvedConfig, runtime: WindRuntime): TransformResult;
 /**
  * Append the near-field guide once per session on the first pre-step.
  * Inactive or already-guided calls return the decision unchanged.
  */
-export declare function maybeGuided(decision: PreStepDecision, meta: GuideMeta, config: WindConfig, runtime: WindRuntime): PreStepDecision;
+export declare function maybeGuided(decision: PreStepDecision, meta: GuideMeta, config: WindResolvedConfig, runtime: WindRuntime): PreStepDecision;
 /** The same-request guidance message appended to a pre-step decision. */
 export declare function guideMessage(mode: number | 'weak' | undefined, modelId: string | undefined): InjectedMessage;

@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto'
 import { buildGuide, bandOf, classifyTask, personaForBand, applyPersona, windExtraSections, STAGES } from './wind-core.js'
 import { decideWind } from './wind-gate.js'
 import { WindRuntime } from './wind-state.js'
-import type { WindConfig, PromptAssembly, PreStepDecision, InjectedMessage, PromptSection } from './types.js'
+import type { WindResolvedConfig, PromptAssembly, PreStepDecision, InjectedMessage, PromptSection } from './types.js'
 
 export interface AssemblyMeta {
   sid: string
@@ -55,7 +55,7 @@ export function recordUserMessage(runtime: WindRuntime, sid: string, text: strin
 export function transformAssembly(
   assembled: PromptAssembly,
   meta: AssemblyMeta,
-  config: WindConfig,
+  config: WindResolvedConfig,
   runtime: WindRuntime,
 ): TransformResult {
   const decision = decideWind(meta, config)
@@ -89,7 +89,7 @@ export function transformAssembly(
 export function maybeGuided(
   decision: PreStepDecision,
   meta: GuideMeta,
-  config: WindConfig,
+  config: WindResolvedConfig,
   runtime: WindRuntime,
 ): PreStepDecision {
   if (decision.kind !== 'enter') return decision

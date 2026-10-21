@@ -53,13 +53,14 @@ npm pack                      # 产物 tgz
 
 ```bash
 # 官方标准安装：写入 profile 依赖并选中 bundle（官方 Plugins 页同样可安装/启停/配置）
-dsh plugin --profile web add 'github:nobodyhere34/dsh-wind-integration#v0.1.2'
+dsh plugin --profile web add 'github:nobodyhere34/dsh-wind-integration#v0.1.3'
 
 # 本地开发：link 依赖，源码 rebuild 后生效
 dsh plugin --profile web add /media/ict/19BD52556106DE5A/dsh-wind-integration
 ```
 
 - bundle 形态：`dsh.bundle.patch` 指向单行 insert `cordis.patch.yml`，安装即随 profile 装配，重启后仍生效。
+- 目标模型配置（v0.1.3）：Plugins → 内置插件配置 → **风插目标模型**。多选列表读取当前已导入模型服务商的模型名（按服务商分组），保存后写入 profile 的 `dsh-wind-integration` 行 `config.targetModels`，volatile 配置热生效，无需重启。
 - 兼容门：`engines.dsh` 声明 `>=0.2.0-rc.2 <0.3.0-0`，安装时由官方兼容性检查校验。
 - 热开发通道（可选）：super-injector `dev_inject_plugin { dir: "..." }` 免重启注入；与 bundle 行同 id，二者互不叠加，改用 bundle 前先 `dev_uninject_plugin`。
 

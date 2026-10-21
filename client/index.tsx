@@ -11,9 +11,10 @@
  */
 import React, { useEffect, useState } from 'react'
 import { zh, en } from './dicts.ts'
+import { registerWindTargetsPage, type WindConfigFormsFace, type WindRemoteFace } from './settings-page.tsx'
 
 export const name = 'dsh-wind-client'
-export const inject = ['slots', 'locale']
+export const inject = ['slots', 'locale', 'configForms', 'remote', 'remote.session']
 export const NS = 'wind'
 export { zh, en }
 
@@ -51,7 +52,11 @@ interface WindCardProps {
 /** Client-side context subset this plugin touches (services declared in inject). */
 interface WindClientContext {
   effect(fn: () => unknown, label?: string): unknown
-  locale?: { register(namespace: string, dict: Record<string, unknown>): unknown }
+  get?(service: string): unknown
+  locale?: {
+    register(namespace: string, dict: Record<string, unknown>): unknown
+    bind?(namespace: string): (key: string, vars?: Record<string, string>) => string
+  }
   slots?: {
     inject(name: string, register: () => unknown): unknown
     register(opts: object, component: unknown): () => void
@@ -76,6 +81,17 @@ export function apply(ctx: WindClientContext): void {
     }
     return undefined
   }, 'dsh-wind: sidebar footer status indicator')
+
+  // Plugins-area configuration page: discovers the wind entry namespace from the
+  // settings document, then lists the imported providers' models as options.
+  ctx.effect(() => {
+    if (typeof ctx.get !== 'function' || ctx.slots === undefined) return undefined
+    const forms = ctx.get('configForms') as WindConfigFormsFace | undefined
+    const remote = ctx.get('remote') as WindRemoteFace | undefined
+    if (forms === undefined || remote === undefined) return undefined
+    const translate = ctx.locale?.bind !== undefined ? ctx.locale.bind('wind') : dictT(resolveLang())
+    return registerWindTargetsPage(forms, ctx.slots, remote, translate)
+  }, 'dsh-wind: target-model configuration page')
 }
 
 function useWindStatus(): WindStatusPayload | undefined {

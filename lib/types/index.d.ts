@@ -18,16 +18,16 @@ import type { WindConfig } from './types.js';
 export declare const name = "dsh-wind-integration";
 export declare const inject: string[];
 export declare const Config: z<Schemastery.ObjectS<NoInfer<{
-    targetModels: z<string[], string[], "defined">;
-    matchV4Fallback: z<boolean, boolean, "defined">;
+    targetModels: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
+    matchV4Fallback: z<boolean, boolean, "volatile-defined">;
     skipPresets: z<string[], string[], "defined">;
     preservePresentationModes: z<string[], string[], "defined">;
     stageRestrict: z<boolean, boolean, "defined">;
     guideEnabled: z<boolean, boolean, "defined">;
     debugLog: z<boolean, boolean, "defined">;
 }>>, Schemastery.ObjectT<NoInfer<{
-    targetModels: z<string[], string[], "defined">;
-    matchV4Fallback: z<boolean, boolean, "defined">;
+    targetModels: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
+    matchV4Fallback: z<boolean, boolean, "volatile-defined">;
     skipPresets: z<string[], string[], "defined">;
     preservePresentationModes: z<string[], string[], "defined">;
     stageRestrict: z<boolean, boolean, "defined">;

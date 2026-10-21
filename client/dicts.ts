@@ -22,6 +22,19 @@ export const zh = {
   statusRestricted: '工具披露：阶段性收窄',
   windToggle: '风插（当前会话）',
   accountLabel: '风插集成',
+  targetsItemTitle: '风插目标模型',
+  targetsSummary: '已选 {count} 个目标模型；点击配置。',
+  targetsTitle: '目标模型',
+  targetsDescription: '只有勾选的模型会启用风插行为；选项来自当前已导入的模型服务商。',
+  targetsCatalogHint: '已选 {count} 个模型',
+  targetsCatalogLoading: '正在读取模型目录…',
+  targetsCatalogError: '模型目录读取失败，可稍后重试。',
+  targetsEmpty: '当前没有可用的模型服务商，请先在设置中导入模型。',
+  targetsStale: '已配置但当前目录未提供',
+  targetsSave: '保存',
+  targetsSaving: '保存中…',
+  targetsDiscard: '放弃修改',
+  targetsReadonly: '当前配置不可写（Host 未开启设置写入）。',
 } as const
 
 export const en = {
@@ -36,6 +49,19 @@ export const en = {
   statusRestricted: 'Tool disclosure: staged',
   windToggle: 'Wind (this session)',
   accountLabel: 'Wind integration',
+  targetsItemTitle: 'Wind target models',
+  targetsSummary: '{count} target model(s) selected; open to configure.',
+  targetsTitle: 'Target models',
+  targetsDescription: 'Wind behavior engages only for the checked models; options come from the imported model providers.',
+  targetsCatalogHint: '{count} model(s) selected',
+  targetsCatalogLoading: 'Reading the model catalogue…',
+  targetsCatalogError: 'Model catalogue unavailable; retry later.',
+  targetsEmpty: 'No model provider is available; import a provider first.',
+  targetsStale: 'Configured but not advertised by the catalogue',
+  targetsSave: 'Save',
+  targetsSaving: 'Saving…',
+  targetsDiscard: 'Discard',
+  targetsReadonly: 'This configuration is not writable (Host settings writes are disabled).',
 } as const
 
 export type WindDict = typeof zh

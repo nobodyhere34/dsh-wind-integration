@@ -23,7 +23,7 @@ import { decideWind, matchesTargetModel } from './wind-gate.js'
 import { WindRuntime } from './wind-state.js'
 import type { SessionWindState } from './wind-state.js'
 import { transformAssembly, maybeGuided, recordUserMessage } from './wind-apply.js'
-import type { WindConfig, WindAgentFace, PreStepDecision, PromptAssembly } from './types.js'
+import type { WindConfig, WindResolvedConfig, WindAgentFace, PreStepDecision, PromptAssembly } from './types.js'
 
 export const name = 'dsh-wind-integration'
 export const inject = ['tools']
@@ -31,8 +31,8 @@ export const inject = ['tools']
 const BT = String.fromCharCode(96) // backtick, for the wind_status markdown fence
 
 export const Config = z.object({
-  targetModels: z.array(z.string()).default(['DeepSeek-V4-Flash-0731', 'deepseek-v4-pro-0813']),
-  matchV4Fallback: z.boolean().default(false),
+  targetModels: z.array(z.string()).default(['DeepSeek-V4-Flash-0731', 'deepseek-v4-pro-0813']).volatile(),
+  matchV4Fallback: z.boolean().default(false).volatile(),
   skipPresets: z.array(z.string()).default(['router-standard', 'router-spec', 'router-pro']),
   preservePresentationModes: z.array(z.string()).default(['ptc', 'both']),
   stageRestrict: z.boolean().default(true),
@@ -41,6 +41,12 @@ export const Config = z.object({
 })
 
 export function apply(ctx: Context, config: WindConfig): void {
+  // Volatile config fields are sampled per decision so Plugins-page edits apply live.
+  const resolveConfig = (): WindResolvedConfig => ({
+    ...config,
+    targetModels: config.targetModels.get(),
+    matchV4Fallback: config.matchV4Fallback.get(),
+  })
   // ── per-session activation override persistence (host state, outside the package) ──
   const stateDir = process.env.DSH_WIND_STATE_DIR ?? join(homedir(), '.dsh', 'dsh-wind-integration')
   const stateFile = join(stateDir, 'wind-enable.json')
@@ -251,7 +257,7 @@ export function apply(ctx: Context, config: WindConfig): void {
           const presetId = composedPresetOf(a)
           const presentation = presentationOf(a)
           const model = modelOf(a) ?? cur.firstAssembledModel
-          const decision = decideWind({ modelId: model, presetId, presentation }, config)
+          const decision = decideWind({ modelId: model, presetId, presentation }, resolveConfig())
           const full = cur.stage >= STAGES.length - 1
           let vis: string[] = []
           try {
@@ -294,7 +300,7 @@ export function apply(ctx: Context, config: WindConfig): void {
       presetId: composedPresetOf(agent),
       presentation: presentationOf(agent),
     }
-    const { assembled: out, decision } = transformAssembly(assembled, meta, config, runtime)
+    const { assembled: out, decision } = transformAssembly(assembled, meta, resolveConfig(), runtime)
     if (decision.active) {
       const st = runtime.ensure(sid)
       if (decision.restrict && !st.restrictApplied) applyStageRestrict(agent, st)
@@ -309,7 +315,7 @@ export function apply(ctx: Context, config: WindConfig): void {
     const sid = sidOf(agent)
     if (sid === undefined) return
     observeModel(sid, modelOf(agent))
-    if (!matchesTargetModel(modelOf(agent), config)) return
+    if (!matchesTargetModel(modelOf(agent), resolveConfig())) return
     const text = extractText(payload.message)
     recordUserMessage(runtime, sid, text)
     const st = runtime.get(sid)
@@ -352,7 +358,7 @@ export function apply(ctx: Context, config: WindConfig): void {
       hasUserMessage: hasUserMessage(payload.messages ?? []),
       mode: st.mode,
     }
-    return maybeGuided(decision, meta, config, runtime)
+    return maybeGuided(decision, meta, resolveConfig(), runtime)
   })
 
   // terminal cleanup: release the restrict disposer and mark the session
@@ -379,9 +385,9 @@ export function apply(ctx: Context, config: WindConfig): void {
     const st = view?.state ?? null
     const body = JSON.stringify({
       plugin: 'dsh-wind-integration',
-      version: '0.1.2',
+      version: '0.1.3',
       active: view?.active ?? false,
-      targetModels: config.targetModels,
+      targetModels: config.targetModels.get(),
       latest: st === null ? null : {
         sid: st.sid,
         model: st.model ?? st.firstAssembledModel,

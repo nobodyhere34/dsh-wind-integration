@@ -6,7 +6,7 @@
  * then the lead-specified fuzzy fallback `/v4/i && (含 '0731' 或 /flash/i 且含 '0731')`
  * (the flash disjunct is implied by the '0731' conjunct; kept literal).
  */
-import type { WindConfig } from './types.js';
+import type { WindResolvedConfig } from './types.js';
 /** Inputs a decision is derived from. */
 export interface WindInput {
     modelId?: string;
@@ -25,10 +25,10 @@ export interface WindDecision {
     skipReason?: 'model' | 'preset' | 'session';
 }
 /** True when the model id matches a configured target (exact or fuzzy v4-0731). */
-export declare function matchesTargetModel(modelId: string | undefined, config: WindConfig): boolean;
+export declare function matchesTargetModel(modelId: string | undefined, config: Pick<WindResolvedConfig, 'targetModels' | 'matchV4Fallback'>): boolean;
 /** True when the composed preset id is itself wind-native and must not be double-wired. */
-export declare function isSkippedPreset(presetId: string | undefined, config: WindConfig): boolean;
+export declare function isSkippedPreset(presetId: string | undefined, config: Pick<WindResolvedConfig, 'skipPresets'>): boolean;
 /** True when the current presentation mode must keep full tool control (no restrict). */
-export declare function preservesTools(presentation: string | undefined, config: WindConfig): boolean;
+export declare function preservesTools(presentation: string | undefined, config: Pick<WindResolvedConfig, 'preservePresentationModes'>): boolean;
 /** Derive the wind engage/restrict decision for one assembly. */
-export declare function decideWind(input: WindInput, config: WindConfig): WindDecision;
+export declare function decideWind(input: WindInput, config: WindResolvedConfig): WindDecision;

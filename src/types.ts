@@ -7,6 +7,8 @@
  * harness's exact type names. Values are resolved defensively at runtime.
  */
 
+import type { Volatile } from 'cordis'
+
 /** One section in a system-prompt assembly. */
 export interface PromptSection {
   name: string
@@ -49,10 +51,10 @@ export interface WindAgentFace {
 
 /** Plugin configuration (schemastery schema in index.ts; defaults mirror the design). */
 export interface WindConfig {
-  /** Exact model ids that activate wind behavior. */
-  targetModels: string[]
-  /** Fuzzy fallback: /v4/i and contains '0731'. */
-  matchV4Fallback: boolean
+  /** Exact model ids that activate wind behavior (live settings field). */
+  targetModels: Volatile<string[]>
+  /** Fuzzy fallback: /v4/i and contains '0731' (live settings field). */
+  matchV4Fallback: Volatile<boolean>
   /** Preset ids that are already wind-native (router-standard/spec/pro) — skip overlay to avoid double-write. */
   skipPresets: string[]
   /** Presentation modes that must NOT have tools restricted (PTC etc.). */
@@ -63,4 +65,12 @@ export interface WindConfig {
   guideEnabled: boolean
   /** Log wind decisions to the host console. */
   debugLog: boolean
+}
+
+/** Config values resolved from Volatile fields for one decision. */
+export interface WindResolvedConfig extends Omit<WindConfig, 'targetModels' | 'matchV4Fallback'> {
+  /** Exact model ids that activate wind behavior. */
+  targetModels: readonly string[]
+  /** Fuzzy fallback: /v4/i and contains '0731'. */
+  matchV4Fallback: boolean
 }
