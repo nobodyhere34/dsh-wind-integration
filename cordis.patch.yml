@@ -1,0 +1,9 @@
+# dsh-wind-integration bundle 层：以单行 insert 把本插件挂载为 DSH 官方 bundle
+# （Plugins 页 / plugin_manager 可管理），重启后持续装配，无需 dsh-super-injector。
+#
+# 行 id 与运行时注入通道（dev_inject_plugin / dev_install_package）使用的条目 id
+# 一致：持久化路径与运行时注入互为替代而非叠加，避免 duplicate loader entry id。
+# 保持单行；如需覆写配置，在 profile 的 cordis.patch.yml 中按 id 调整本行 config。
+- insert:
+    - id: dsh-wind-integration
+      name: '@dsh-external/dsh-wind-integration'

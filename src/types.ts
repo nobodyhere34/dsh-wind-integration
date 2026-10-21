@@ -1,0 +1,66 @@
+/**
+ * Wind integration plugin — structural types.
+ *
+ * The plugin is injected into the web profile host and consumes agent-scoped
+ * events with these loose structural interfaces (instead of importing the DSH
+ * packages) so the package type-checks offline and stays decoupled from the
+ * harness's exact type names. Values are resolved defensively at runtime.
+ */
+
+/** One section in a system-prompt assembly. */
+export interface PromptSection {
+  name: string
+  text?: string
+  order?: number
+}
+
+/** The assembled system-prompt surface consumed by `system-prompt/assemble`. */
+export interface PromptAssembly {
+  sections?: PromptSection[]
+  contexts?: unknown[]
+  tools?: { name: string }[]
+  variables?: Record<string, unknown>
+}
+
+/** Pre-step decision a waterfall listener returns. */
+export interface PreStepDecision {
+  kind: 'enter' | 'reject'
+  messages: Array<Record<string, unknown>>
+}
+
+/** A user-role message we append to a pre-step decision (same-request guidance). */
+export type InjectedMessage = {
+  role: 'user'
+  content: { type: 'text'; text: string }[]
+  /** Producer-owned V4 kind; the retired `{kind:'plugin', plugin}` wrapper is rejected by DSH ≥0.1.7 admission. */
+  source: { kind: `plugin:${string}` } & Record<string, unknown>
+} & Record<string, unknown>
+
+/** Runtime agent/session face we rely on (resolved live from event payloads). */
+export interface WindAgentFace {
+  id?: string
+  options?: { model?: string }
+  session?: { id?: string }
+  ctx?: {
+    get?: (service: string) => unknown
+    effect?: (fn: () => unknown, label?: string) => unknown
+  }
+}
+
+/** Plugin configuration (schemastery schema in index.ts; defaults mirror the design). */
+export interface WindConfig {
+  /** Exact model ids that activate wind behavior. */
+  targetModels: string[]
+  /** Fuzzy fallback: /v4/i and contains '0731'. */
+  matchV4Fallback: boolean
+  /** Preset ids that are already wind-native (router-standard/spec/pro) — skip overlay to avoid double-write. */
+  skipPresets: string[]
+  /** Presentation modes that must NOT have tools restricted (PTC etc.). */
+  preservePresentationModes: string[]
+  /** Apply progressive staged tool disclosure on native-presented sessions. */
+  stageRestrict: boolean
+  /** Inject once-per-session near-field guidance on the first pre-step. */
+  guideEnabled: boolean
+  /** Log wind decisions to the host console. */
+  debugLog: boolean
+}

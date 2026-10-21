@@ -1,0 +1,64 @@
+{
+  "name": "@dsh-external/dsh-wind-integration",
+  "version": "0.1.1",
+  "description": "风插（dsh-routing-suite 路由器行为）运行时模型门控集成：选中 ds v4 0731 模型时，任意预设自动叠加风插行为（band persona / 近场引导 / 阶段段 / 渐进式工具披露），PTC 等非 native 呈现只加行为、绝不 restrict。零重启运行时注入（dsh-super-injector 通道），host-only（不依赖预设内挂载）。",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nobodyhere34/dsh-wind-integration.git"
+  },
+  "homepage": "https://github.com/nobodyhere34/dsh-wind-integration#readme",
+  "bugs": {
+    "url": "https://github.com/nobodyhere34/dsh-wind-integration/issues"
+  },
+  "main": "./lib/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json",
+    "./client": {
+      "types": "./lib/client.d.ts",
+      "default": "./lib/client.js"
+    }
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "src",
+    "lib",
+    "scripts",
+    "client",
+    "docs",
+    "cordis.patch.yml"
+  ],
+  "engines": {
+    "node": ">=18",
+    "dsh": ">=0.2.0-rc.2 <0.3.0-0"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.0.1-rc <2",
+    "cordis": ">=4.0.0-rc <5",
+    "schemastery": "^3.18.0"
+  },
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "test": "bash scripts/build.sh && node --test tests/wind-gate.test.mjs tests/wind-core.test.mjs tests/wind-apply.test.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}
