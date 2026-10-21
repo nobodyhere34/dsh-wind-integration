@@ -53,7 +53,7 @@ npm pack                      # 产物 tgz
 
 ```bash
 # 官方标准安装：写入 profile 依赖并选中 bundle（官方 Plugins 页同样可安装/启停/配置）
-dsh plugin --profile web add 'github:nobodyhere34/dsh-wind-integration#v0.1.3'
+dsh plugin --profile web add 'github:nobodyhere34/dsh-wind-integration#v0.1.4'
 
 # 本地开发：link 依赖，源码 rebuild 后生效
 dsh plugin --profile web add /media/ict/19BD52556106DE5A/dsh-wind-integration

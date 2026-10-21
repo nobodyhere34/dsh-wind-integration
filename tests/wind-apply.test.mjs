@@ -42,8 +42,9 @@ test('CASE 1 — 0731 + standard → wind active (sections + once-only guide)', 
   assert.equal(decision.restrict, true)
   const names = assembled.sections.map((s) => s.name)
   assert.ok(names.includes('wind-stage') && names.includes('wind-decl'))
-  const persona = assembled.sections.find((s) => s.name === 'system-persona')
+  const persona = assembled.sections.find((s) => s.name === 'wind-persona')
   assert.ok(persona.text.startsWith('You are a') && persona.text !== 'official persona')
+  assert.equal(assembled.sections.some((s) => s.name === 'system-persona'), false, 'official persona section is replaced')
   assert.equal(runtime.get('s1').injectedAssemblies, 1)
 
   // guide: first pre-step injects exactly one message

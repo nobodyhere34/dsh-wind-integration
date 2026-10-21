@@ -22,7 +22,9 @@ export declare function isFlashModel(modelId: string | undefined): boolean;
 export declare function isComplexTask(text: string): boolean;
 /** Quantize a task mode to a stable behavior band. */
 export declare function bandOf(mode: TaskMode | undefined): BandName;
-/** Classify a user task text into a reasoning mode (0 / 0.3 / 1 / 'weak'). */
+/** Classify a user task text into a reasoning mode (0 / 0.3 / 1 / 'weak').
+ * Clear keyword evidence picks a stable band; ambiguous text returns 'weak'
+ * so the model routes itself (same hit-count rule as upstream router-core-v34). */
 export declare function classifyTask(text: string): TaskMode;
 /** Extract the display text from a user message (content array or plain string). */
 export declare function extractText(message: unknown): string;
@@ -40,7 +42,8 @@ export declare const WIND_META_TOOLS: readonly string[];
 export declare const WIND_GLOBAL_SAFE: readonly string[];
 /** End index (exclusive) of the stage slice exposed at a given stage: only the current stage. */
 export declare function windowFor(stage: number): number;
-/** Stage ← next on todo/plan evidence (todo_write call or plan wording). */
+/** Advance at most one stage per call from tool evidence plus tightened wording
+ * (upstream v34: /方案|计划/ was removed because it fired too early). */
 export declare function advanceStage(stage: number, toolNames: Iterable<string>, text: string): number;
 /** The near-field guide text (same-request, appended once on the first pre-step). */
 export declare function buildGuide(band: BandName | undefined, modelId: string | undefined): string;
@@ -48,7 +51,8 @@ export declare function buildGuide(band: BandName | undefined, modelId: string |
 export declare function buildDeclaration(): string;
 /** The stage section text: current stage, unlocked tools, and next goal. */
 export declare function buildStageText(stage: number, modelId: string | undefined, band: BandName | undefined, fullCatalog: boolean): string;
-/** Point any persona-named section at the band persona; add a wind-persona section when none exists. */
+/** Replace every persona-named section with one appended wind persona (upstream
+ * v34 semantics: official persona is removed, everything else is preserved). */
 export declare function applyPersona(sections: PromptSection[], personaText: string): PromptSection[];
 /** Sections added on top of the official sections when wind engages. */
 export declare function windExtraSections(stage: number, band: BandName | undefined, modelId: string | undefined, fullCatalog: boolean): PromptSection[];

@@ -9,10 +9,14 @@ import {
   applyPersona, windExtraSections, STAGES,
 } from '../lib/wind-core.js'
 
-test('classifyTask: complex/spec → 0, hands-on → 1, weak otherwise', () => {
-  assert.equal(classifyTask('请先给我一份详细的架构设计方案再动手'), 0)
+test('classifyTask: hit-counted spec/react bands, ambiguous → weak (upstream v34)', () => {
+  assert.equal(classifyTask('请修复这个崩溃问题'), 0)
   assert.equal(classifyTask('重构这个系统的整体流程并优化性能'), 0)
   assert.equal(classifyTask('直接写一个网页出来，快点'), 1)
+  assert.equal(classifyTask('写一个登录页面'), 1)
+  // Tightened upstream rule: planning wording alone carries no class evidence.
+  assert.equal(classifyTask('先给个计划'), 'weak')
+  assert.equal(classifyTask('看看这个'), 'weak')
   assert.equal(classifyTask('hello'), 'weak')
   assert.equal(classifyTask(''), 'weak')
 })
@@ -35,7 +39,9 @@ test('isFlashModel / extractText', () => {
 
 test('personaForBand: weak flash gets the neutral classify-and-act persona', () => {
   const flashWeak = personaForBand('weak', 'DeepSeek-V4-Flash-0731')
-  assert.ok(flashWeak.includes('build or fix') && flashWeak.includes('Think first'), flashWeak)
+  assert.ok(flashWeak.includes('build or fix') && flashWeak.includes('Think deeply'), flashWeak)
+  assert.ok(flashWeak.includes('Do not run environment checks'), 'upstream flash anchors are kept verbatim')
+  assert.ok(personaForBand('react', 'x').includes('do not build test harnesses'), 'upstream react persona is kept verbatim')
   assert.ok(personaForBand('react', 'DeepSeek-V4-Flash-0731').includes('hands-on'))
   assert.ok(personaForBand('spec', 'x').includes('software engineer'))
 })
@@ -51,6 +57,7 @@ test('stage ladder: 4 stages with per-stage tools and goals', () => {
 test('advanceStage transitions on tool/text evidence and never regresses', () => {
   assert.equal(advanceStage(0, ['todo_write'], ''), 1)
   assert.equal(advanceStage(0, [], '开始开发'), 1)
+  assert.equal(advanceStage(0, [], '计划一下方案'), 0, 'planning wording no longer advances (upstream v34 tightening)')
   assert.equal(advanceStage(1, ['write'], ''), 2)
   assert.equal(advanceStage(2, [], '实现完成，开始验证'), 3)
   assert.equal(advanceStage(3, [], 'anything'), 3)

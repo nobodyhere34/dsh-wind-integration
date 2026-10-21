@@ -385,7 +385,7 @@ export function apply(ctx: Context, config: WindConfig): void {
     const st = view?.state ?? null
     const body = JSON.stringify({
       plugin: 'dsh-wind-integration',
-      version: '0.1.3',
+      version: '0.1.4',
       active: view?.active ?? false,
       targetModels: config.targetModels.get(),
       latest: st === null ? null : {

@@ -27,8 +27,9 @@ const MIXED_PERSONA =
 const REACT_PERSONA =
   'You are a hands-on software engineer who delivers working output fast.\n'
   + 'Work directly: write or edit code, then verify it by reading and running. '
-  + 'Keep the loop tight — produce, verify, fix — and finish with a usable '
-  + 'deliverable and a short summary.'
+  + 'Keep the loop tight — produce, verify, fix — and do not build test '
+  + 'harnesses, scaffolding, or ceremony the user did not ask for. '
+  + 'Finish with a usable deliverable and a short summary.'
 const WEAK_PRO =
   'You are a helpful software engineer assistant.\n'
   + 'Before acting, decide the task type (build or fix) and adopt the matching '
@@ -37,12 +38,17 @@ const WEAK_FLASH =
   'You are a helpful assistant.\n'
   + 'Before acting, decide the task type (build or fix) and adopt the matching '
   + 'style: build → hands-on production; fix → inspect-and-plan.\n'
-  + 'Before acting, review what you have already done and continue; do not '
-  + 'repeat completed steps or run environment checks. Think first, then produce.'
+  + 'Before acting, briefly review what you have already done in this session and continue from where you left off; do not repeat completed steps. Do not run environment checks (echo, whoami, uname, node --version, date) or exhaustive grep/glob scans.\n'
+  + 'Think deeply first, then produce.'
 
 const COMPLEX_RE = /(重构|架构|全面|详细|设计|系统|优化|分析|survey|overview|architecture|refactor|comprehensive|detailed|design|system|optimize|analyze)/i
-const SPEC_RE = /(先|计划|方案|规划|步骤|详细|设计|重构|架构|修复|调试|调查|设计文档|架构图|整体流程|roadmap|plan|design|debug|fix|refactor|architecture|investigate|analyze|review)/i
-const REACT_RE = /(直接|立刻|马上|快点|尽快|现在|写|实现|改|做|生成|产出|create|write|build|implement|generate|make|do|now|quick|fast|immediately)/i
+// Upstream router-core-v34 classification vocabulary (hit-counted, not first-match).
+const REACT_RE = /(开发|创建|写一个|生成|从零|做一个|游戏|网页|网站|构建|新项目|搭建|实现|做出|上线|落地|脚本|工具|应用|build|create|develop|generate|implement|make a|new project)/gi
+const SPEC_RE = /(修复|修一下|调试|重构|维护|排查|报错|出错|崩溃|优化|审查|review|fix|debug|refactor|maintain|repair|broken|break|为什么|异常|故障|迁移|升级|兼容)/gi
+
+function countHits(regex: RegExp, text: string): number {
+  return [...text.matchAll(regex)].length
+}
 
 function clamp01(n: number): number {
   return n < 0 ? 0 : n > 1 ? 1 : n
@@ -63,16 +69,21 @@ export function bandOf(mode: TaskMode | undefined): BandName {
   if (mode === MODE_WEAK || mode === undefined) return 'weak'
   const m = clamp01(mode)
   if (m < 0.2) return 'spec'
-  if (m <= 0.45) return 'mixed'
+  // Upstream keeps [0.2, 0.5) as the unstable transition band.
+  if (m < 0.5) return 'mixed'
   return 'react'
 }
 
-/** Classify a user task text into a reasoning mode (0 / 0.3 / 1 / 'weak'). */
+/** Classify a user task text into a reasoning mode (0 / 0.3 / 1 / 'weak').
+ * Clear keyword evidence picks a stable band; ambiguous text returns 'weak'
+ * so the model routes itself (same hit-count rule as upstream router-core-v34). */
 export function classifyTask(text: string): TaskMode {
-  if (!text.trim()) return MODE_WEAK
-  return isComplexTask(text) && SPEC_RE.test(text) ? 0
-    : REACT_RE.test(text) ? 1
-    : MODE_WEAK
+  if (typeof text !== 'string' || text.trim() === '') return MODE_WEAK
+  const react = countHits(REACT_RE, text)
+  const spec = countHits(SPEC_RE, text)
+  if (react > spec) return 1
+  if (spec > react) return 0
+  return MODE_WEAK
 }
 
 /** Extract the display text from a user message (content array or plain string). */
@@ -118,13 +129,16 @@ export function windowFor(stage: number): number {
   return stage + 1
 }
 
-/** Stage ← next on todo/plan evidence (todo_write call or plan wording). */
+/** Advance at most one stage per call from tool evidence plus tightened wording
+ * (upstream v34: /方案|计划/ was removed because it fired too early). */
 export function advanceStage(stage: number, toolNames: Iterable<string>, text: string): number {
+  const names = new Set(toolNames)
+  const words = typeof text === 'string' ? text : ''
   let next = stage
-  if (stage === 0 && (hasTool(toolNames, 'todo_write') || /开始|开头|开发|固定方案|计划|plan|design|todo/i.test(text))) next = 1
-  else if (stage === 1 && hasTool(toolNames, 'write', 'edit', 'str_replace_editor')) next = 2
-  else if (stage === 2 && (hasTool(toolNames, 'bash', 'pwsh', 'job_list', 'job_output', 'job_kill') || /完成|验证|测试|跑|run|test|verify|done/i.test(text))) next = 3
-  return Math.max(stage, Math.min(next, STAGES.length - 1))
+  if (next === 0 && (names.has('todo_write') || /开始开发|进入开发|着手实现|开始实现|write the code/i.test(words))) next = 1
+  if (next === 1 && (names.has('write') || names.has('edit') || names.has('str_replace_editor'))) next = 2
+  if (next === 2 && (names.has('pwsh') || names.has('bash') || /完成|finished|done|验证/i.test(words))) next = 3
+  return Math.min(next, STAGES.length - 1)
 }
 
 function hasTool(toolNames: Iterable<string>, ...names: string[]): boolean {
@@ -164,17 +178,11 @@ export function buildStageText(stage: number, modelId: string | undefined, band:
     + ' band=' + (band ?? 'weak') + ' model=' + (modelId ?? '?')
 }
 
-/** Point any persona-named section at the band persona; add a wind-persona section when none exists. */
+/** Replace every persona-named section with one appended wind persona (upstream
+ * v34 semantics: official persona is removed, everything else is preserved). */
 export function applyPersona(sections: PromptSection[], personaText: string): PromptSection[] {
-  let sawPersona = false
-  const out = sections.map((s) => {
-    if (/persona/i.test(s.name)) { sawPersona = true; return { ...s, text: personaText } }
-    return s
-  })
-  if (!sawPersona) {
-    out.push({ name: 'wind-persona', text: personaText, order: 0 })
-  }
-  return out
+  const rest = sections.filter((section) => !/persona/i.test(section.name))
+  return [...rest, { name: 'wind-persona', text: personaText, order: 0 }]
 }
 
 /** Sections added on top of the official sections when wind engages. */
