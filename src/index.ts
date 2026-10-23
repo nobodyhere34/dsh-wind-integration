@@ -14,6 +14,7 @@
  */
 import type { Context } from 'cordis'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -23,6 +24,7 @@ import { decideWind, matchesTargetModel } from './wind-gate.js'
 import { WindRuntime } from './wind-state.js'
 import type { SessionWindState } from './wind-state.js'
 import { transformAssembly, maybeGuided, recordUserMessage } from './wind-apply.js'
+import { lastAssistantOfTurn, openTodoCount, shouldContinue } from './continuation.js'
 import { registerDeliveryCheck } from './delivery-check.js'
 import { registerPhaseTools } from './phase-tools.js'
 import { catalogFromStages } from './phase-state.js'
@@ -40,6 +42,10 @@ export const Config = z.object({
   preservePresentationModes: z.array(z.string()).default(['ptc', 'both']),
   stageRestrict: z.boolean().default(true),
   guideEnabled: z.boolean().default(true),
+  legacyContinuation: z.boolean().default(false),
+  legacyModels: z.array(z.string()).default([]),
+  legacyContinuationMaxPerTurn: z.number().min(1).max(5).default(2),
+  legacyContinuationPrompt: z.string().default('[continuation] 你上一条消息只是进度汇报，没有工具调用，本轮原本会结束。继续任务：现在直接发出下一个工具调用；只有任务完成或需要用户决策时才允许纯文字收尾。'),
   debugLog: z.boolean().default(false),
 })
 
@@ -419,6 +425,54 @@ export function apply(ctx: Context, config: WindConfig): void {
     }
   })
 
+  // ── legacy-model continuation: a text-only turn that still looks unfinished ──
+  const continuationTurns = new Map<string, number>()
+  const sessionEventsOf = (agent: WindAgentFace): unknown[] => {
+    try {
+      const session = agent.session as { snapshotEvents?: () => unknown[]; events?: unknown[] } | undefined
+      const events = typeof session?.snapshotEvents === 'function' ? session.snapshotEvents() : session?.events
+      return Array.isArray(events) ? events : []
+    } catch { return [] }
+  }
+  const registerScopedListener = ctx.on as unknown as (this: unknown, name: string, listener: (payload: { agent?: WindAgentFace; turn?: number }) => void) => unknown
+  registerScopedListener.call(ctx, 'agent/turn-stopping', (payload) => {
+    if (!config.legacyContinuation) return
+    const agent = payload.agent
+    const turn = payload.turn
+    if (agent === undefined || typeof turn !== 'number') return
+    const events = sessionEventsOf(agent)
+    const decision = shouldContinue(
+      { modelId: modelOf(agent), last: lastAssistantOfTurn(events, turn), openTodos: openTodoCount(events) },
+      {
+        enabled: config.legacyContinuation,
+        models: config.legacyModels,
+        maxPerTurn: config.legacyContinuationMaxPerTurn,
+        prompt: config.legacyContinuationPrompt,
+      },
+    )
+    if (!decision.continue) return
+    const sid = sidOf(agent) ?? String(agent.id ?? '')
+    const key = sid + '#' + turn
+    const used = continuationTurns.get(key) ?? 0
+    if (used >= config.legacyContinuationMaxPerTurn) return
+    continuationTurns.set(key, used + 1)
+    if (continuationTurns.size > 256) {
+      const oldest = continuationTurns.keys().next().value
+      if (oldest !== undefined) continuationTurns.delete(oldest)
+    }
+    const steer = (agent as unknown as { steer?: (message: unknown) => void }).steer
+    if (typeof steer !== 'function') return
+    try {
+      steer.call(agent, {
+        id: randomUUID(),
+        role: 'user',
+        content: [{ type: 'text', text: config.legacyContinuationPrompt }],
+        source: { kind: 'plugin:dsh-wind-integration', form: 'notice', summary: 'legacy continuation' },
+      })
+      log('legacy continuation: model=' + (modelOf(agent) ?? '?') + ' turn=' + turn)
+    } catch (e) { log('legacy continuation failed: ' + String(e)) }
+  })
+
   // ── UI endpoints (host-only): GET /wind/status (polled by the client pill)
   // and POST /wind/config (per-session activation override: false disables
   // wind for that session even when the model gate passes). No model-visible
@@ -428,7 +482,7 @@ export function apply(ctx: Context, config: WindConfig): void {
     const st = view?.state ?? null
     const body = JSON.stringify({
       plugin: 'dsh-wind-integration',
-      version: '0.2.0',
+      version: '0.2.1',
       active: view?.active ?? false,
       targetModels: config.targetModels.get(),
       latest: st === null ? null : {

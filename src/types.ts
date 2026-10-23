@@ -63,6 +63,14 @@ export interface WindConfig {
   stageRestrict: boolean
   /** Inject once-per-session near-field guidance on the first pre-step. */
   guideEnabled: boolean
+  /** Continue a text-only turn that ends with a progress report (legacy-model compatibility). */
+  legacyContinuation: boolean
+  /** Model id patterns for legacy continuation (case-insensitive substring; '*' wildcard). */
+  legacyModels: string[]
+  /** Hard cap of continuation messages per turn. */
+  legacyContinuationMaxPerTurn: number
+  /** User-role message steered into a stalled legacy turn. */
+  legacyContinuationPrompt: string
   /** Log wind decisions to the host console. */
   debugLog: boolean
 }

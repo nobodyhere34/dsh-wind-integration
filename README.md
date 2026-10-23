@@ -102,3 +102,25 @@ cordis.patch.yml  官方 bundle 装配层（package.json dsh.bundle.patch 声明
 - delivery_check：file-exists/nonempty/utf8 + 页面 smoke + evidence manifest；PASS 才可宣告完成，FAIL 不可绕过。
 - autoAdvance：完成信号推进（ask_user_question/todo_write/exit_plan_mode → delivery_check），工具名/文本意图不再跳级。
 - 测试：66/66（上游 parity 10 + phase 9 + delivery 22 + 门控/核心/验收 25）；完整叙事见 docs/WIND-STORY.md。
+
+## 七、老版本模型续跑兼容（legacyContinuation）
+
+风插的模型门控只让 0731 / 0813pro 获得 wind 行为。老模型（如 deepseek-chat、qwen、glm 等）常见“先文字汇报、下一轮再调工具”的写法，而 DSH 的循环把“纯文字”当作本轮结束。v0.2.1 起风插可以承载这一兼容层：
+
+```yaml
+- id: dsh-wind-integration
+  config:
+    targetModels: [DeepSeek-V4-Flash-0731, deepseek-v4-pro-0813]
+    legacyContinuation: true
+    legacyModels:
+      - deepseek-chat*
+      - deepseek-reasoner*
+      - qwen*
+      - glm*
+    legacyContinuationMaxPerTurn: 2
+```
+
+- 触发点：`agent/turn-stopping`（本轮即将因无工具调用结束）。
+- 判定：命中 `legacyModels`；本轮最后一条 assistant message 无 tool-call；文本像进度汇报（含“接下来/下一步/现在我来/next/let me/I'll”等，或仍有 pending/in_progress todo）；以问句结尾时跳过（问用户决策不算停滞）。
+- 动作：steer 一条用户消息（默认提示词见 config 默认值），最多 N 次/轮；不改变“纯文字=完成”的核心语义，只对配置的模型开启。
+- 默认关闭；需要按你的老模型 id 配置 `legacyModels`。

@@ -24,6 +24,10 @@ export declare const Config: z<Schemastery.ObjectS<NoInfer<{
     preservePresentationModes: z<string[], string[], "defined">;
     stageRestrict: z<boolean, boolean, "defined">;
     guideEnabled: z<boolean, boolean, "defined">;
+    legacyContinuation: z<boolean, boolean, "defined">;
+    legacyModels: z<string[], string[], "defined">;
+    legacyContinuationMaxPerTurn: z<number, number, "defined">;
+    legacyContinuationPrompt: z<string, string, "defined">;
     debugLog: z<boolean, boolean, "defined">;
 }>>, Schemastery.ObjectT<NoInfer<{
     targetModels: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
@@ -32,6 +36,10 @@ export declare const Config: z<Schemastery.ObjectS<NoInfer<{
     preservePresentationModes: z<string[], string[], "defined">;
     stageRestrict: z<boolean, boolean, "defined">;
     guideEnabled: z<boolean, boolean, "defined">;
+    legacyContinuation: z<boolean, boolean, "defined">;
+    legacyModels: z<string[], string[], "defined">;
+    legacyContinuationMaxPerTurn: z<number, number, "defined">;
+    legacyContinuationPrompt: z<string, string, "defined">;
     debugLog: z<boolean, boolean, "defined">;
 }>>, "plain">;
 export declare function apply(ctx: Context, config: WindConfig): void;
