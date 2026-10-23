@@ -24,9 +24,9 @@ export declare const Config: z<Schemastery.ObjectS<NoInfer<{
     preservePresentationModes: z<string[], string[], "defined">;
     stageRestrict: z<boolean, boolean, "defined">;
     guideEnabled: z<boolean, boolean, "defined">;
-    legacyContinuation: z<boolean, boolean, "defined">;
-    legacyModels: z<string[], string[], "defined">;
-    legacyContinuationMaxPerTurn: z<number, number, "defined">;
+    legacyContinuation: z<boolean, boolean, "volatile-defined">;
+    legacyModels: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
+    legacyContinuationMaxPerTurn: z<number, number, "volatile-defined">;
     legacyContinuationPrompt: z<string, string, "defined">;
     debugLog: z<boolean, boolean, "defined">;
 }>>, Schemastery.ObjectT<NoInfer<{
@@ -36,9 +36,9 @@ export declare const Config: z<Schemastery.ObjectS<NoInfer<{
     preservePresentationModes: z<string[], string[], "defined">;
     stageRestrict: z<boolean, boolean, "defined">;
     guideEnabled: z<boolean, boolean, "defined">;
-    legacyContinuation: z<boolean, boolean, "defined">;
-    legacyModels: z<string[], string[], "defined">;
-    legacyContinuationMaxPerTurn: z<number, number, "defined">;
+    legacyContinuation: z<boolean, boolean, "volatile-defined">;
+    legacyModels: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
+    legacyContinuationMaxPerTurn: z<number, number, "volatile-defined">;
     legacyContinuationPrompt: z<string, string, "defined">;
     debugLog: z<boolean, boolean, "defined">;
 }>>, "plain">;

@@ -124,3 +124,5 @@ cordis.patch.yml  官方 bundle 装配层（package.json dsh.bundle.patch 声明
 - 判定：命中 `legacyModels`；本轮最后一条 assistant message 无 tool-call；文本像进度汇报（含“接下来/下一步/现在我来/next/let me/I'll”等，或仍有 pending/in_progress todo）；以问句结尾时跳过（问用户决策不算停滞）。
 - 动作：steer 一条用户消息（默认提示词见 config 默认值），最多 N 次/轮；不改变“纯文字=完成”的核心语义，只对配置的模型开启。
 - 默认关闭；需要按你的老模型 id 配置 `legacyModels`。
+
+Plugins → 内置插件配置 → 「风插目标模型」页在 v0.2.2 起同时提供「老模型续跑」开关、模型多选（与目标模型同一份已导入服务商目录）和每轮上限；保存写入 profile 的 dsh-wind-integration 行并热生效。

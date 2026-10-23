@@ -95,6 +95,28 @@ function configuredModels(snapshot: WindConfigFormSnapshot): string[] {
   return Array.isArray(models) ? models.filter((model): model is string => typeof model === 'string') : []
 }
 
+interface LegacyConfigValue {
+  enabled: boolean
+  models: string[]
+  maxPerTurn: number
+}
+
+/** Volatile legacy-continuation fields projected by the settings form. */
+function configuredLegacy(snapshot: WindConfigFormSnapshot): LegacyConfigValue {
+  const value = (snapshot.value ?? {}) as {
+    legacyContinuation?: unknown
+    legacyModels?: unknown
+    legacyContinuationMaxPerTurn?: unknown
+  }
+  return {
+    enabled: value.legacyContinuation === true,
+    models: Array.isArray(value.legacyModels)
+      ? value.legacyModels.filter((model): model is string => typeof model === 'string')
+      : [],
+    maxPerTurn: typeof value.legacyContinuationMaxPerTurn === 'number' ? value.legacyContinuationMaxPerTurn : 2,
+  }
+}
+
 function fallbackT(key: string): string {
   return key
 }
@@ -120,14 +142,21 @@ export function WindTargetsPage({ view, windForm, loadCatalog, t: tf }: WindTarg
     () => windForm.getSnapshot(),
   )
   const configured = configuredModels(snapshot)
+  const legacy = configuredLegacy(snapshot)
   const [catalog, setCatalog] = useState<{ status: 'idle' | 'loading' | 'ready' | 'error'; groups: WindProviderGroup[] }>({ status: 'idle', groups: [] })
   const [draft, setDraft] = useState<string[] | undefined>(undefined)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | undefined>(undefined)
+  const [draftLegacy, setDraftLegacy] = useState<string[] | undefined>(undefined)
+  const [legacyEnabled, setLegacyEnabled] = useState<boolean | undefined>(undefined)
+  const [legacyMax, setLegacyMax] = useState<number | undefined>(undefined)
   const revision = snapshot.revision
 
   useEffect(() => {
     setDraft(undefined)
+    setDraftLegacy(undefined)
+    setLegacyEnabled(undefined)
+    setLegacyMax(undefined)
   }, [revision])
 
   useEffect(() => {
@@ -148,7 +177,14 @@ export function WindTargetsPage({ view, windForm, loadCatalog, t: tf }: WindTarg
   const selected = useMemo(() => draft ?? configured, [draft, configured])
   const selectedSet = useMemo(() => new Set(selected), [selected])
   const groups = useMemo(() => mergedGroups(catalog.groups, configured), [catalog.groups, configured])
-  const dirty = selected.length !== configured.length || selected.some((model) => !configured.includes(model))
+  const legacySelected = draftLegacy ?? legacy.models
+  const legacySet = useMemo(() => new Set(legacySelected), [legacySelected])
+  const legacyOn = legacyEnabled ?? legacy.enabled
+  const legacyMaxValue = legacyMax ?? legacy.maxPerTurn
+  const legacyGroups = useMemo(() => mergedGroups(catalog.groups, legacy.models), [catalog.groups, legacy.models])
+  const legacyDirty = legacyOn !== legacy.enabled || legacyMaxValue !== legacy.maxPerTurn
+    || legacySelected.length !== legacy.models.length || legacySelected.some((model) => !legacy.models.includes(model))
+  const dirty = selected.length !== configured.length || selected.some((model) => !configured.includes(model)) || legacyDirty
 
   if (view === 'summary') {
     return <span>{t('targetsSummary', { count: String(configured.length) })}</span>
@@ -160,12 +196,23 @@ export function WindTargetsPage({ view, windForm, loadCatalog, t: tf }: WindTarg
     setError(undefined)
   }
 
+  const toggleLegacy = (model: string): void => {
+    const next = legacySet.has(model) ? legacySelected.filter((item) => item !== model) : [...legacySelected, model]
+    setDraftLegacy(next)
+    setError(undefined)
+  }
+
   const save = async (): Promise<void> => {
     if (saving || !dirty) return
     setSaving(true)
     setError(undefined)
     try {
-      await windForm.mutate([{ op: 'set', path: ['targetModels'], value: selected }], revision)
+      await windForm.mutate([
+        { op: 'set', path: ['targetModels'], value: selected },
+        { op: 'set', path: ['legacyContinuation'], value: legacyOn },
+        { op: 'set', path: ['legacyModels'], value: legacySelected },
+        { op: 'set', path: ['legacyContinuationMaxPerTurn'], value: legacyMaxValue },
+      ], revision)
       setDraft(undefined)
     } catch (failure) {
       setError(String(failure))
@@ -212,12 +259,44 @@ export function WindTargetsPage({ view, windForm, loadCatalog, t: tf }: WindTarg
           ))}
         </section>
       ))}
+      <div style={{ borderTop: '1px solid var(--dsw-border, #ddd)', paddingTop: 10, marginTop: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>{t('legacyTitle')}</div>
+        <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2 }}>{t('legacyDescription')}</div>
+        <label style={{ ...row, marginTop: 6 }}>
+          <input type="checkbox" checked={legacyOn} disabled={readonly || saving}
+            onChange={() => { setLegacyEnabled(!legacyOn); setError(undefined) }} />
+          <span style={{ fontSize: 13 }}>{t('legacyEnable')}</span>
+        </label>
+        <label style={{ ...row }}>
+          <span style={{ fontSize: 13 }}>{t('legacyMaxPerTurn')}</span>
+          <input type="number" min={1} max={5} value={legacyMaxValue} disabled={readonly || saving}
+            onChange={(event) => {
+              const next = Number(event.target.value)
+              setLegacyMax(Number.isFinite(next) ? Math.min(5, Math.max(1, Math.round(next))) : 2)
+              setError(undefined)
+            }}
+            style={{ width: 64 }} />
+        </label>
+        {legacyGroups.map((group) => (
+          <section key={'legacy:' + (group.id || '__stale')} style={section}>
+            {group.name !== '' ? <div style={provider}>{group.name}</div> : <div style={provider}>{t('targetsStale')}</div>}
+            {group.models.map((model) => (
+              <label key={'legacy:' + group.id + ':' + model.id} style={{ ...row, cursor: readonly ? 'default' : 'pointer' }}>
+                <input type="checkbox" checked={legacySet.has(model.id)} disabled={readonly || saving}
+                  onChange={() => toggleLegacy(model.id)} />
+                <span style={{ fontSize: 13 }}>{model.name}</span>
+                <span style={{ fontSize: 11, opacity: 0.5 }}>{model.id}</span>
+              </label>
+            ))}
+          </section>
+        ))}
+      </div>
       {error !== undefined ? <div style={{ fontSize: 12, color: 'var(--dsw-danger, #c0392b)' }}>{error}</div> : null}
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         <button type="button" disabled={readonly || saving || !dirty} onClick={() => { void save() }}>
           {saving ? t('targetsSaving') : t('targetsSave')}
         </button>
-        <button type="button" disabled={saving || draft === undefined} onClick={() => { setDraft(undefined); setError(undefined) }}>
+        <button type="button" disabled={saving || (draft === undefined && draftLegacy === undefined && legacyEnabled === undefined && legacyMax === undefined)} onClick={() => { setDraft(undefined); setDraftLegacy(undefined); setLegacyEnabled(undefined); setLegacyMax(undefined); setError(undefined) }}>
           {t('targetsDiscard')}
         </button>
       </div>

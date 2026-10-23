@@ -64,11 +64,11 @@ export interface WindConfig {
   /** Inject once-per-session near-field guidance on the first pre-step. */
   guideEnabled: boolean
   /** Continue a text-only turn that ends with a progress report (legacy-model compatibility). */
-  legacyContinuation: boolean
+  legacyContinuation: Volatile<boolean>
   /** Model id patterns for legacy continuation (case-insensitive substring; '*' wildcard). */
-  legacyModels: string[]
+  legacyModels: Volatile<string[]>
   /** Hard cap of continuation messages per turn. */
-  legacyContinuationMaxPerTurn: number
+  legacyContinuationMaxPerTurn: Volatile<number>
   /** User-role message steered into a stalled legacy turn. */
   legacyContinuationPrompt: string
   /** Log wind decisions to the host console. */
@@ -76,9 +76,15 @@ export interface WindConfig {
 }
 
 /** Config values resolved from Volatile fields for one decision. */
-export interface WindResolvedConfig extends Omit<WindConfig, 'targetModels' | 'matchV4Fallback'> {
+export interface WindResolvedConfig extends Omit<WindConfig, 'targetModels' | 'matchV4Fallback' | 'legacyContinuation' | 'legacyModels' | 'legacyContinuationMaxPerTurn'> {
   /** Exact model ids that activate wind behavior. */
   targetModels: readonly string[]
   /** Fuzzy fallback: /v4/i and contains '0731'. */
   matchV4Fallback: boolean
+  /** Legacy continuation switch resolved from its volatile field. */
+  legacyContinuation: boolean
+  /** Legacy model patterns resolved from their volatile field. */
+  legacyModels: readonly string[]
+  /** Per-turn continuation cap resolved from its volatile field. */
+  legacyContinuationMaxPerTurn: number
 }
