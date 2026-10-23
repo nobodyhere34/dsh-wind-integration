@@ -337,11 +337,11 @@ export function registerWindTargetsPage(
     watched = namespace
     if (namespace === undefined) return
     const form = forms.get<unknown>(namespace)
-    pageOff = forms.whileServed([namespace], () => slots.inject('plugins.item', () => slots.register({
-      name: 'plugins.item',
-      id: 'wind-targets',
+    // Rendered inside the wind bundle's own detail page (no extra list entry).
+    pageOff = forms.whileServed([namespace], () => slots.inject('plugins.bundle.config', () => slots.register({
+      name: 'plugins.bundle.config',
+      key: '@dsh-external/dsh-wind-integration',
       order: 60,
-      label: () => translate('targetsItemTitle'),
       locale: 'wind',
       inject: () => ({ windForm: form, loadCatalog }),
     }, WindTargetsPage)))
